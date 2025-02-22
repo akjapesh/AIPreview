@@ -1,6 +1,7 @@
 "use client";
 import { Divider } from "../../components/infra/Divider";
 import { signup } from "../../lib/login/auth";
+import { useActionState } from "react";
 
 export default function SignupForm() {
   const [state, action, pending] = useActionState(signup, undefined);
