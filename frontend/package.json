@@ -13,6 +13,7 @@
     "@monaco-editor/react": "^4.7.0",
     "baseui": "^15.0.0",
     "graphql": "^16.10.0",
+    "jose": "^6.0.4",
     "monaco-editor": "^0.52.2",
     "next": "15.1.7",
     "react": "^19.0.0",
