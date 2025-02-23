@@ -19,7 +19,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/v5"
 	"github.com/rs/cors"
 	"github.com/vektah/gqlparser/v2/ast"
 )
@@ -29,7 +29,10 @@ const defaultPort = "8080"
 func authMiddleware(next http.Handler) http.Handler { //This middleware extracts the Authorization token from HTTP headers.
 	fmt.Println("authMiddleware")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
+		if r.URL.Path == "/playground" || r.URL.Path == "/playgroundQuery" {
+			next.ServeHTTP(w, r)
+			return
+		}
 		if r.Header.Get("X-Auth-Optional") == "true" {
 			next.ServeHTTP(w, r)
 			return
@@ -39,7 +42,7 @@ func authMiddleware(next http.Handler) http.Handler { //This middleware extracts
 
 		if err != nil {
 			// If no auth_token, just pass request without auth
-			fmt.Println("🔴 Missing Authorization Token")
+			fmt.Println("**** Missing Authorization Token ****")
 			http.Error(w, "Missing Authorization Token", http.StatusUnauthorized)
 			return
 		}
@@ -66,12 +69,12 @@ func server(conn *pgx.Conn) {
 
 	router := chi.NewRouter()
 
-	// ✅ CORS middleware (Allows frontend at http://localhost:3000)
+	// CORS middleware (Allows frontend at http://localhost:3000)
 	corsMiddleware := cors.New(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:3000"}, // Change this in production
 		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
 		AllowedHeaders:   []string{"Origin", "Content-Type", "Accept", "Authorization"},
-		AllowCredentials: true, // ✅ Allows sending cookies (JWT in cookies)
+		AllowCredentials: true, // Allows sending cookies (JWT in cookies)
 	})
 
 	router.Use(middleware.Logger)
@@ -81,7 +84,7 @@ func server(conn *pgx.Conn) {
 
 	// Pass the database connection to the resolver
 	resolver := resolver.NewResolver(conn)
-	//srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
+
 	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
 
 	srv.AddTransport(transport.Options{})
@@ -95,8 +98,10 @@ func server(conn *pgx.Conn) {
 		Cache: lru.New[string](100),
 	})
 
-	router.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	//to be changed during production
+	router.Handle("/playground", playground.Handler("GraphQL playground", "/playgroundQuery"))
 	router.Handle("/graphql", srv)
+	router.Handle("/playgroundQuery", srv)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, router))

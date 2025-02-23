@@ -13,7 +13,7 @@ export const SIGNIN_MUTATION = gql`
       user{
         id
         email
-        name
+        username
       }
     }
   }
