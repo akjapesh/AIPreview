@@ -11,9 +11,9 @@ func FindUserByEmail(email string) (*model.User, error) {
 	// Mock database lookup
 	if email == "test@example.com" {
 		return &model.User{
-			ID:    "1",
-			Name:  "Test User",
-			Email: "test@example.com",
+			ID:       "1",
+			Username: "Test User",
+			Email:    "test@example.com",
 			//	Password: "$2a$10$ExampleHashedPassword", // Replace with actual hashed password
 		}, nil
 	}

@@ -1,11 +1,13 @@
 package main
 
 import (
+	"backend/database"
 	"backend/graph"
 	"backend/graph/resolver"
 	"backend/pkg/auth"
 	"context"
 	"fmt"
+
 	"log"
 	"net/http"
 	"os"
@@ -17,13 +19,15 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/jackc/pgx"
 	"github.com/rs/cors"
 	"github.com/vektah/gqlparser/v2/ast"
 )
 
 const defaultPort = "8080"
 
-func authMiddleware(next http.Handler) http.Handler {
+func authMiddleware(next http.Handler) http.Handler { //This middleware extracts the Authorization token from HTTP headers.
+	fmt.Println("authMiddleware")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		if r.Header.Get("X-Auth-Optional") == "true" {
@@ -53,7 +57,8 @@ func authMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func main() {
+func server(conn *pgx.Conn) {
+	database.LoadEnvFile(".env")
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultPort
@@ -74,9 +79,10 @@ func main() {
 	router.Use(corsMiddleware.Handler)
 	router.Use(authMiddleware)
 
-	resolver := resolver.NewResolver()
-
-	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
+	// Pass the database connection to the resolver
+	resolver := resolver.NewResolver(conn)
+	//srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
+	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
 
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.GET{})
@@ -92,7 +98,7 @@ func main() {
 	router.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	router.Handle("/graphql", srv)
 
-	log.Printf("connect to http://localhost:8080/ for GraphQL playground")
-	log.Fatal(http.ListenAndServe(":8080", router))
+	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
+	log.Fatal(http.ListenAndServe(":"+port, router))
 
 }

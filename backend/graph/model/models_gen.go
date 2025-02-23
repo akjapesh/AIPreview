@@ -25,7 +25,8 @@ type SignUpInput struct {
 }
 
 type User struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	ID       string `json:"id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	IsActive *bool  `json:"isActive,omitempty"`
 }
