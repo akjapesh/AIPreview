@@ -27,7 +27,7 @@ input SignInInput {
 }
 
 type Query {
-  getUserById(userId: String!): User!
+  getUserByEmailId(emailId: String!): User!
 }
 
 type Mutation {

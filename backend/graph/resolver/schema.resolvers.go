@@ -19,7 +19,6 @@ import (
 
 // SignUp is the resolver for the signUp field.
 func (r *mutationResolver) SignUp(ctx context.Context, input model.SignUpInput) (bool, error) {
-
 	exists, err := database.UserExists(r.Conn, input.Email, input.Name)
 	if err != nil {
 		return false, fmt.Errorf("error checking existing user: %w", err)
@@ -51,7 +50,6 @@ func (r *mutationResolver) SignUp(ctx context.Context, input model.SignUpInput) 
 	}
 
 	return true, nil
-
 }
 
 // SignIn is the resolver for the signIn field.
@@ -90,10 +88,18 @@ func (r *mutationResolver) SignIn(ctx context.Context, input model.SignInInput) 
 	}, nil
 }
 
-// GetUserByID is the resolver for the getUserById field.
-func (r *queryResolver) GetUserByID(ctx context.Context, userID string) (*model.User, error) {
-
-	panic(fmt.Errorf("not implemented: GetUserByID - getUserById"))
+// GetUserByEmailID is the resolver for the getUserByEmailId field.
+func (r *queryResolver) GetUserByEmailID(ctx context.Context, emailID string) (*model.User, error) {
+	user, err := database.FetchUserByEmail(r.Conn, strings.ToLower(emailID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch user: %w", err)
+	}
+	return &model.User{
+		ID:       user.ID.String(),
+		Username: user.Username,
+		Email:    user.Email,
+		IsActive: &user.IsActive,
+	}, nil
 }
 
 // Mutation returns graph.MutationResolver implementation.
@@ -104,3 +110,15 @@ func (r *Resolver) Query() graph.QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+/*
+	func (r *queryResolver) GetUserByID(ctx context.Context, emailID string) (*model.User, error) {
+	panic(fmt.Errorf("not implemented: GetUserByID - getUserById"))
+}
+*/
