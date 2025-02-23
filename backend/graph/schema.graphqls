@@ -7,6 +7,9 @@ type User {
   username: String!
   email: String!
   isActive: Boolean  # Nullable field
+  createdAt: String
+  updatedAt: String
+
 
 }
 
