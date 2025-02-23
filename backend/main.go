@@ -8,6 +8,8 @@ import (
 
 func main() {
 
+	database.FetchDataUsingAPIKey("users")
+
 	//connect to database
 	conn, err := database.ConnectToDatabase()
 	if err != nil {
@@ -16,6 +18,6 @@ func main() {
 	defer conn.Close(context.Background())
 
 	//connect to graphqi
-	server()
+	server(conn)
 
 }

@@ -10,12 +10,13 @@ import (
 	"os"
 	"strings"
 
+	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v5"
 )
 
 func ConnectToDatabase() (*pgx.Conn, error) {
 	// Load environment variables
-	loadEnvFile(".env")
+	LoadEnvFile(".env")
 
 	// Get database connection string from environment variable
 	dbURL := os.Getenv("DB_CONNECTION_STRING")
@@ -32,7 +33,7 @@ func ConnectToDatabase() (*pgx.Conn, error) {
 	return conn, nil
 }
 
-func loadEnvFile(filename string) {
+func LoadEnvFile(filename string) {
 	file, err := os.Open(filename)
 	if err != nil {
 		log.Fatal("Error loading .env file:", err)
@@ -59,7 +60,7 @@ func loadEnvFile(filename string) {
 }
 
 func FetchDataUsingAPIKey(tableName string) {
-	loadEnvFile(".env") // Load environment variables from .env file
+	LoadEnvFile(".env") // Load environment variables from .env file
 	dbUrl := os.Getenv("DATABASE_URL")
 	dbAPIKey := os.Getenv("DATABASE_API_KEY")
 
@@ -94,29 +95,57 @@ func FetchDataUsingAPIKey(tableName string) {
 
 }
 
-func FetchAllUsers(conn *pgx.Conn) ([]User, error) {
-	query := "SELECT * FROM users"
+// FetchUserByEmail fetches a user by their email address.
+func FetchUserByEmail(conn *pgx.Conn, email string) (*User, error) {
+	query := "SELECT id, username, email, password_hash, created_at, updated_at, is_active FROM users WHERE email = $1"
 
-	rows, err := conn.Query(context.Background(), query)
+	// Execute the query and fetch a single row
+	row := conn.QueryRow(context.Background(), query, email)
+
+	var user User
+	// Scan the row into the User struct
+	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt, &user.IsActive)
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute query: %w", err)
-	}
-	defer rows.Close() // Close rows when function exits
-
-	var users []User
-
-	for rows.Next() { // Iterate over each row
-		var user User
-		err := rows.Scan(&user.ID, &user.Username)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan row: %w", err)
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("user not found")
 		}
-		users = append(users, user) // Add user to slice
+		return nil, fmt.Errorf("failed to fetch user: %w", err)
 	}
 
-	if err := rows.Err(); err != nil { // Check for iteration errors
-		return nil, fmt.Errorf("error iterating rows: %w", err)
+	return &user, nil
+}
+
+// UserExists checks if a user with the given email or username exists.
+func UserExists(conn *pgx.Conn, email, username string) (bool, error) {
+	query := "SELECT id FROM users WHERE email = $1 OR username = $2"
+	row := conn.QueryRow(context.Background(), query, email, username)
+
+	var existingUserID uuid.UUID
+	err := row.Scan(&existingUserID)
+	if err == nil {
+		return true, nil // User exists
+	} else if err != pgx.ErrNoRows {
+		return false, fmt.Errorf("error checking existing user: %w", err)
 	}
 
-	return users, nil // Return all users
+	return false, nil // User does not exist
+}
+
+// SaveUser inserts a new user into the database.
+func SaveUser(conn *pgx.Conn, newUser User) (*User, error) {
+	insertQuery := `
+		INSERT INTO users (username, email, password_hash, created_at, updated_at, is_active) 
+		VALUES ($1, $2, $3, $4, $5, $6) 
+		RETURNING id, created_at, updated_at, is_active`
+
+	err := conn.QueryRow(context.Background(), insertQuery,
+		newUser.Username, newUser.Email, newUser.PasswordHash,
+		newUser.CreatedAt, newUser.UpdatedAt, newUser.IsActive,
+	).Scan(&newUser.ID, &newUser.CreatedAt, &newUser.UpdatedAt, &newUser.IsActive)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to insert new user: %w", err)
+	}
+
+	return &newUser, nil
 }
