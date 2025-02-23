@@ -2,55 +2,55 @@ package main
 
 import (
 	"backend/graph"
+	"backend/graph/resolver"
+	"backend/pkg/auth"
+	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"fmt"
-	"context"
+
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/vektah/gqlparser/v2/ast"
-	"backend/graph/resolver"
-    "backend/pkg/auth"
-    "github.com/go-chi/chi"
-    "github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 	"github.com/rs/cors"
+	"github.com/vektah/gqlparser/v2/ast"
 )
 
 const defaultPort = "8080"
 
 func authMiddleware(next http.Handler) http.Handler {
-    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 		if r.Header.Get("X-Auth-Optional") == "true" {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-        cookie,err := r.Cookie("auth_token")
+		cookie, err := r.Cookie("auth_token")
 
 		if err != nil {
 			// If no auth_token, just pass request without auth
 			fmt.Println("🔴 Missing Authorization Token")
-            http.Error(w, "Missing Authorization Token", http.StatusUnauthorized)
-            return
+			http.Error(w, "Missing Authorization Token", http.StatusUnauthorized)
+			return
 		}
-        
 
-        tokenStr := cookie.Value
-        claims, err := auth.ValidateToken(tokenStr)
-        if err != nil {
-            http.Error(w, "Invalid token", http.StatusUnauthorized)
-            return
-        }
+		tokenStr := cookie.Value
+		claims, err := auth.ValidateToken(tokenStr)
+		if err != nil {
+			http.Error(w, "Invalid token", http.StatusUnauthorized)
+			return
+		}
 
-        // Add user ID to context
-        ctx := context.WithValue(r.Context(), "user_id", claims.UserID)
-        next.ServeHTTP(w, r.WithContext(ctx))
-    })
+		// Add user ID to context
+		ctx := context.WithValue(r.Context(), "user_id", claims.UserID)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
 
 func main() {
@@ -69,10 +69,10 @@ func main() {
 		AllowCredentials: true, // ✅ Allows sending cookies (JWT in cookies)
 	})
 
-    router.Use(middleware.Logger)
-    router.Use(middleware.Recoverer)
+	router.Use(middleware.Logger)
+	router.Use(middleware.Recoverer)
 	router.Use(corsMiddleware.Handler)
-	router.Use(authMiddleware)   
+	router.Use(authMiddleware)
 
 	resolver := resolver.NewResolver()
 
@@ -90,9 +90,9 @@ func main() {
 	})
 
 	router.Handle("/", playground.Handler("GraphQL playground", "/query"))
-    router.Handle("/graphql", srv)
+	router.Handle("/graphql", srv)
 
-    log.Printf("connect to http://localhost:8080/ for GraphQL playground")
-    log.Fatal(http.ListenAndServe(":8080", router))
+	log.Printf("connect to http://localhost:8080/ for GraphQL playground")
+	log.Fatal(http.ListenAndServe(":8080", router))
 
 }
