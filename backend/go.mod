@@ -6,6 +6,7 @@ require (
 	github.com/99designs/gqlgen v0.17.66
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-chi/chi v1.5.5
+	github.com/rs/cors v1.11.1
 	github.com/vektah/gqlparser/v2 v2.5.22
 	golang.org/x/crypto v0.34.0
 )

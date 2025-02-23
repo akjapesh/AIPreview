@@ -28,7 +28,7 @@ func (r *mutationResolver) SignUp(ctx context.Context, input model.SignUpInput) 
 	if err != nil {
 		return false, err
 	}
-
+	
 	// Create user
 	user := &internalModel.InternalUser{
 		ID:       fmt.Sprintf("user_%d", len(r.users)+1),
