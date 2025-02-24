@@ -8,8 +8,6 @@ import (
 
 func main() {
 
-	database.FetchDataUsingAPIKey("users")
-
 	//connect to database
 	conn, err := database.ConnectToDatabase()
 	if err != nil {

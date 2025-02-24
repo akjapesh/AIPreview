@@ -4,6 +4,14 @@ import { Tabs, Tab } from "baseui/tabs-motion";
 import dynamic from "next/dynamic";
 import { PreviewTombstone } from "../tombstones/PreviewTombstone";
 import { EditorTombstone } from "../tombstones/EditorTombstone";
+import {
+  SandpackProvider,
+  SandpackLayout,
+  SandpackCodeEditor,
+  SandpackPreview,
+  SandpackFileExplorer,
+} from "@codesandbox/sandpack-react";
+import { Overflow } from "baseui/icon";
 
 // Dynamically import Monaco Editor to avoid SSR issues
 const CodeEditor = dynamic(
@@ -17,7 +25,7 @@ const Preview = dynamic(() => import("./Preview").then((mod) => mod.Preview), {
 
 export function CodePreviewBox() {
   const [css] = useStyletron();
-  const [activeTab, setActiveTab] = useState("0");
+  const [activeTab, setActiveTab] = useState("1");
   //   const { currentCode } = useCodeGeneration();
   const { currentCode } = {};
 
@@ -29,42 +37,52 @@ export function CodePreviewBox() {
         boxSizing: "border-box",
       })}
     >
-      <div
-        style={{
-          height: "100%",
+      <SandpackProvider
+        template="react"
+        options={{
+          showTabs: true,
+          closableTabs: true,
         }}
       >
-        <Tabs
-          activeKey={activeTab}
-          onChange={({ activeKey }) => setActiveTab(String(activeKey))}
-          overrides={{
-            Root: {
-              style: {
-                height: "100%",
-                display: "flex",
-                flexDirection: "column",
-              },
-            },
-            TabContent: {
-              style: {
-                flexGrow: 1,
-                padding: "16px",
-              },
-            },
-          }}
+        <SandpackLayout
+          className={css({
+            flexGrow: 1, // Take up remaining space
+          })}
         >
-          <Tab title="Code">
-            <Suspense fallback={<EditorTombstone />}>
-              <CodeEditor code={currentCode} />
-            </Suspense>
-          </Tab>
-          <Tab title="Preview">
-            <Suspense fallback={<PreviewTombstone />}>
-              <Preview code={currentCode} />
-            </Suspense>
-          </Tab>
-        </Tabs>
-      </div>
+          <Tabs
+            activeKey={activeTab}
+            onChange={({ activeKey }) => setActiveTab(String(activeKey))}
+            overrides={{
+              Root: {
+                style: {
+                  height: "95vh",
+                  width: "100vw",
+                  display: "flex",
+                  flexDirection: "column",
+                  overflow: "scroll",
+                },
+              },
+              TabContent: {
+                style: {
+                  flexGrow: 1,
+                  padding: "16px",
+                },
+              },
+            }}
+          >
+            <Tab title="Code">
+              <Suspense fallback={<EditorTombstone />}>
+                <CodeEditor code={currentCode} />
+              </Suspense>
+            </Tab>
+            <Tab title="Preview">
+              <Suspense fallback={<PreviewTombstone />}>
+                <Preview code={currentCode} />
+              </Suspense>
+            </Tab>
+          </Tabs>
+        </SandpackLayout>
+      </SandpackProvider>
     </div>
   );
 }
