@@ -89,8 +89,8 @@ func (r *mutationResolver) SignIn(ctx context.Context, input model.SignInInput) 
 }
 
 // GetUserByEmailID is the resolver for the getUserByEmailId field.
-func (r *queryResolver) GetUserByEmailID(ctx context.Context, emailId string) (*model.User, error) {
-	user, err := database.FetchUserByEmail(r.Conn, strings.ToLower(emailId))
+func (r *queryResolver) GetUserByEmailID(ctx context.Context, emailID string) (*model.User, error) {
+	user, err := database.FetchUserByEmail(r.Conn, strings.ToLower(emailID))
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch user: %w", err)
 	}

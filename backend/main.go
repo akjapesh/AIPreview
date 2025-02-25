@@ -2,22 +2,23 @@ package main
 
 import (
 	"backend/database"
-	"context"
 	"log"
 )
 
 func main() {
 
-	database.FetchDataUsingAPIKey("users")
-
-	//connect to database
-	conn, err := database.ConnectToDatabase()
+	err := database.ConnectToRedis()
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatalf("Redis connection error: %v", err)
 	}
-	defer conn.Close(context.Background())
+
+	pool, err := database.ConnectToDatabaseByPool()
+	if err != nil {
+		log.Fatalf("Failed to connect to database through pool: %v", err)
+	}
+	defer pool.Close()
 
 	//connect to graphqi
-	server(conn)
+	server(pool)
 
 }

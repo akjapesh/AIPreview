@@ -7,6 +7,8 @@ import (
 	"backend/pkg/auth"
 	"context"
 	"fmt"
+	"strings"
+	"sync"
 
 	"log"
 	"net/http"
@@ -19,7 +21,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/cors"
 	"github.com/vektah/gqlparser/v2/ast"
 )
@@ -29,6 +31,10 @@ const defaultPort = "8080"
 func authMiddleware(next http.Handler) http.Handler { //This middleware extracts the Authorization token from HTTP headers.
 	fmt.Println("authMiddleware")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		next.ServeHTTP(w, r)
+		return
+
 		if r.URL.Path == "/playground" || r.URL.Path == "/playgroundQuery" {
 			next.ServeHTTP(w, r)
 			return
@@ -60,12 +66,13 @@ func authMiddleware(next http.Handler) http.Handler { //This middleware extracts
 	})
 }
 
-func server(conn *pgx.Conn) {
+func server(conn *pgxpool.Pool) {
 	database.LoadEnvFile(".env")
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = defaultPort
+	ports := os.Getenv("PORTS")
+	if ports == "" {
+		ports = defaultPort
 	}
+	portList := strings.Split(ports, ",")
 
 	router := chi.NewRouter()
 
@@ -83,7 +90,7 @@ func server(conn *pgx.Conn) {
 	router.Use(authMiddleware)
 
 	// Pass the database connection to the resolver
-	resolver := resolver.NewResolver(conn)
+	resolver := resolver.NewResolver(conn, database.RedisClient)
 
 	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
 
@@ -99,11 +106,21 @@ func server(conn *pgx.Conn) {
 	})
 
 	//to be changed during production
+	router.Handle("/", playground.Handler("GraphQL playground", "/graphql"))
+
 	router.Handle("/playground", playground.Handler("GraphQL playground", "/playgroundQuery"))
 	router.Handle("/graphql", srv)
 	router.Handle("/playgroundQuery", srv)
 
-	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	log.Fatal(http.ListenAndServe(":"+port, router))
+	var wg sync.WaitGroup
+	for _, port := range portList {
+		wg.Add(1)
+		go func(port string) {
+			defer wg.Done()
+			log.Printf("Starting server on port %s", port)
+			log.Fatal(http.ListenAndServe(":"+port, router))
+		}(port)
+	}
+	wg.Wait()
 
 }

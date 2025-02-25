@@ -1,6 +1,9 @@
 package resolver
 
-import "github.com/jackc/pgx/v5"
+import (
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
+)
 
 // This file will not be regenerated automatically.
 //
@@ -10,12 +13,14 @@ import "github.com/jackc/pgx/v5"
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
-	Conn *pgx.Conn
+	Conn       *pgxpool.Pool
+	RedisCache *redis.Client
 }
 
 // NewResolver initializes the resolver with a database connection
-func NewResolver(conn *pgx.Conn) *Resolver {
+func NewResolver(conn *pgxpool.Pool, redisClient *redis.Client) *Resolver {
 	return &Resolver{
-		Conn: conn,
+		Conn:       conn,
+		RedisCache: redisClient,
 	}
 }
