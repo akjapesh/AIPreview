@@ -11,9 +11,10 @@ A powerful AI-driven UI component generator built with **Next.js (SSR + SSG)**, 
 ## Installation & Running  
 
 ### Prerequisites  
-- Node.js (for Next.js frontend)  
-- Go (for backend)  
-- FastAPI (Python)  
+- Next.js+React+Typescript (frontend-SSR/SSG)
+- Go/Gin (backend)  
+- Apollo GraphQL-client+server (state management, requests, event-streaming)
+- FastAPI + Langchain (Python)  
 - Redis  
 
 ### Install Dependencies  
