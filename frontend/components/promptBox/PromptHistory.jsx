@@ -1,7 +1,7 @@
 import React from "react";
 import { useStyletron } from "baseui";
 import { useQuery } from "@apollo/client";
-import { GET_HISTORY } from "../../lib/fragments";
+import { GET_HISTORY } from "../../lib/fragments/generateComponent";
 import { Spinner } from "baseui/spinner";
 
 export function PromptHistory() {

@@ -1,0 +1,14 @@
+langchain
+langchain-openai
+langchain-huggingface
+langchain-community
+langchain-core
+chromadb
+python-dotenv
+fastapi
+uvicorn
+transformers
+torch
+sentence-transformers
+accelerate
+huggingface-hub

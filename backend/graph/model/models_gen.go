@@ -7,6 +7,17 @@ type AuthResponse struct {
 	User  *User  `json:"user"`
 }
 
+type CodeFile struct {
+	Name    string `json:"name"`
+	Content string `json:"content"`
+}
+
+type GeneratedCode struct {
+	Files      []*CodeFile `json:"files"`
+	IsComplete bool        `json:"isComplete"`
+	Chunk      *string     `json:"chunk,omitempty"`
+}
+
 type Mutation struct {
 }
 
@@ -22,6 +33,9 @@ type SignUpInput struct {
 	Name     string `json:"name"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+type Subscription struct {
 }
 
 type User struct {

@@ -1,0 +1,14 @@
+[
+  {
+    "name": "PrimaryButton",
+    "code": "import {Button} from 'baseui/button';\n\nexport default function PrimaryButton({children}) {\n  return <Button kind=\"primary\">{children}</Button>;\n}",
+    "description": "A primary button using BaseWeb UI",
+    "tags": ["button", "primary", "baseweb"]
+  },
+  {
+    "name": "DashboardCard",
+    "code": "export default function DashboardCard({title, content}) {\n  return (\n    <div className=\"bg-white rounded-lg p-6 shadow-md\">\n      <h3 className=\"text-lg font-semibold mb-4\">{title}</h3>\n      <p className=\"text-gray-600\">{content}</p>\n    </div>\n  );\n}",
+    "description": "A dashboard card component with Tailwind CSS",
+    "tags": ["card", "dashboard", "tailwind"]
+  }
+]

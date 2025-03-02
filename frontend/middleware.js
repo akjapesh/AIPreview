@@ -18,6 +18,9 @@ export async function middleware(req) {
   const { pathname } = req.nextUrl;
   const authToken = req.cookies.get("auth_token")?.value;
 
+  //for dev purpose only
+  return NextResponse.next();
+
   if (pathname.startsWith("/login")) {
     if (!authToken) return NextResponse.next();
     return NextResponse.redirect(new URL("/codePreview", req.url));

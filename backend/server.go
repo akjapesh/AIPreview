@@ -7,7 +7,7 @@ import (
 	"backend/pkg/auth"
 	"context"
 	"fmt"
-
+	"backend/pkg/mlServices"
 	"log"
 	"net/http"
 	"os"
@@ -16,6 +16,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
+	"github.com/gorilla/websocket"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -27,8 +28,11 @@ import (
 const defaultPort = "8080"
 
 func authMiddleware(next http.Handler) http.Handler { //This middleware extracts the Authorization token from HTTP headers.
-	fmt.Println("authMiddleware")
+	
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// to be removed 
+		next.ServeHTTP(w, r)
+		return
 		if r.URL.Path == "/playground" || r.URL.Path == "/playgroundQuery" {
 			next.ServeHTTP(w, r)
 			return
@@ -60,7 +64,7 @@ func authMiddleware(next http.Handler) http.Handler { //This middleware extracts
 	})
 }
 
-func server(conn *pgx.Conn) {
+func server(conn *pgx.Conn, mlClient *mlServices.MLClient) {
 	database.LoadEnvFile(".env")
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -82,14 +86,23 @@ func server(conn *pgx.Conn) {
 	router.Use(corsMiddleware.Handler)
 	router.Use(authMiddleware)
 
-	// Pass the database connection to the resolver
-	resolver := resolver.NewResolver(conn)
+	// Create GraphQL resolver
+	resolver := resolver.NewResolver(conn,mlClient)
 
+	// Create GraphQL server
 	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
 
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.GET{})
 	srv.AddTransport(transport.POST{})
+	// Enable WebSocket transport
+	srv.AddTransport(&transport.Websocket{
+		Upgrader: websocket.Upgrader{
+			CheckOrigin: func(r *http.Request) bool {
+				return true // Allow all origins (adjust for production)
+			},
+		},
+	})
 
 	srv.SetQueryCache(lru.New[*ast.QueryDocument](1000))
 

@@ -9,6 +9,7 @@ import (
 	"backend/graph"
 	"backend/graph/model"
 	"backend/pkg/auth"
+	"backend/pkg/mlServices"
 	"context"
 	"fmt"
 	"strings"
@@ -89,8 +90,8 @@ func (r *mutationResolver) SignIn(ctx context.Context, input model.SignInInput) 
 }
 
 // GetUserByEmailID is the resolver for the getUserByEmailId field.
-func (r *queryResolver) GetUserByEmailID(ctx context.Context, emailId string) (*model.User, error) {
-	user, err := database.FetchUserByEmail(r.Conn, strings.ToLower(emailId))
+func (r *queryResolver) GetUserByEmailID(ctx context.Context, emailID string) (*model.User, error) {
+	user, err := database.FetchUserByEmail(r.Conn, strings.ToLower(emailID))
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch user: %w", err)
 	}
@@ -106,11 +107,69 @@ func (r *queryResolver) GetUserByEmailID(ctx context.Context, emailId string) (*
 	}, nil
 }
 
+// GenerateResponse is the resolver for the generateResponse field.
+func (r *subscriptionResolver) GenerateResponse(ctx context.Context, userID string, discussionID string, prompt string) (<-chan *model.GeneratedCode, error) {
+	// Create output channel for streaming responses
+	out := make(chan *model.GeneratedCode)
+
+	// Call ML service to get streaming channel
+	mlStream, err := r.MLClient.GenerateComponent(ctx, prompt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start generation: %w", err)
+	}
+	fmt.Println("mlStream==", mlStream)
+	go func() {
+		defer close(out)
+		var fullResponse strings.Builder
+		var finalFiles []*model.CodeFile
+
+		// Stream chunks from ML service
+		for chunk := range mlStream {
+			fmt.Println("chunk==", chunk)
+			select {
+			case <-ctx.Done():
+				// Handle client disconnection
+				fmt.Println("-------last chunk---------")
+				return
+			default:
+				fullResponse.WriteString(chunk)
+
+				// Send incremental chunk to client
+				out <- &model.GeneratedCode{
+					Chunk:      &chunk,
+					IsComplete: false,
+				}
+			}
+		}
+
+		// After stream completes, process final output
+		sanitized := mlServices.SanitizeCode(fullResponse.String())
+		finalFiles = []*model.CodeFile{
+			{
+				Name:    "App.tsx",
+				Content: sanitized,
+			},
+		}
+
+		// Send final completion message
+		out <- &model.GeneratedCode{
+			Files:      finalFiles,
+			IsComplete: true,
+		}
+	}()
+
+	return out, nil
+}
+
 // Mutation returns graph.MutationResolver implementation.
 func (r *Resolver) Mutation() graph.MutationResolver { return &mutationResolver{r} }
 
 // Query returns graph.QueryResolver implementation.
 func (r *Resolver) Query() graph.QueryResolver { return &queryResolver{r} }
 
+// Subscription returns graph.SubscriptionResolver implementation.
+func (r *Resolver) Subscription() graph.SubscriptionResolver { return &subscriptionResolver{r} }
+
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+type subscriptionResolver struct{ *Resolver }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { useStyletron } from "baseui";
 import { Textarea } from "baseui/textarea";
 import { Button } from "baseui/button";
@@ -15,17 +15,30 @@ const GET_USER_BY_ID = gql`
 `;
 export function PromptInput() {
   const [css] = useStyletron();
-  const [prompt, setPrompt] = useState("abcd");
-  //   const { generateCode, loading } = useCodeGeneration();
-  const { generateCode, loading } = {};
-  const [getUserById, { loading: userLoading, data }] = useLazyQuery(
-    GET_USER_BY_ID,
-    {
-      variables: { userId: "user_1" },
-    }
-  );
+  const [prompt, setPrompt] = useState("");
 
-  const handleSubmit = getUserById;
+  const {
+    currentCode,
+    setCurrentCode,
+    shouldSubscribe,
+    setShouldSubscribe,
+    isGenerating,
+    setIsGenerating,
+    loading,
+    error,
+  } = useCodeGeneration({ prompt });
+
+  const handleSubmit = useCallback(() => {
+    //need to check this
+    setCurrentCode("");
+    setShouldSubscribe(true);
+    setIsGenerating(true);
+  }, []);
+
+  const stopGeneration = useCallback(() => {
+    setShouldSubscribe(false);
+    setIsGenerating(false);
+  }, []);
 
   return (
     <div>
@@ -39,10 +52,13 @@ export function PromptInput() {
         <Button
           onClick={handleSubmit}
           isLoading={loading}
-          disabled={!prompt.trim() || loading}
+          disabled={!prompt.trim() || loading || isGenerating}
         >
           Generate Component
         </Button>
+        {isGenerating ?? (
+          <Button onClick={stopGeneration}>Stop Generation</Button>
+        )}
       </div>
     </div>
   );

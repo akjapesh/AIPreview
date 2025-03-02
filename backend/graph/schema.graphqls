@@ -6,16 +6,25 @@ type User {
   id: ID!
   username: String!
   email: String!
-  isActive: Boolean  # Nullable field
+  isActive: Boolean # Nullable field
   createdAt: String
   updatedAt: String
-
-
 }
 
 type AuthResponse {
   token: String!
   user: User!
+}
+
+type GeneratedCode {
+  files: [CodeFile!]!
+  isComplete: Boolean!
+  chunk: String
+}
+
+type CodeFile {
+  name: String!
+  content: String!
 }
 
 input SignUpInput {
@@ -36,4 +45,11 @@ type Query {
 type Mutation {
   signUp(input: SignUpInput!): Boolean!
   signIn(input: SignInInput!): AuthResponse!
+}
+type Subscription {
+  generateResponse(
+    userId: String!
+    discussionId: String!
+    prompt: String!
+  ): GeneratedCode!
 }
