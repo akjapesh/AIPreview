@@ -52,7 +52,11 @@ python3 main.py
 ```
 
 ### Tech Stack
+
 Frontend – Next.js 
+
 Backend – Go (Gin) & FastAPI
+
 AI & Data Processing – OpenAI’s GPT-3, LangChain (RAG), FAISS
+
 Database & Caching – Redis, Supabase
